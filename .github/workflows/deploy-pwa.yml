@@ -34,13 +34,6 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
-      # `enablement: true` laisse le workflow activer GitHub Pages lui-même,
-      # ce qui évite d'avoir à le faire à la main dans les réglages du dépôt.
-      - name: Configurer Pages
-        uses: actions/configure-pages@v5
-        with:
-          enablement: true
-
       - run: npm ci
 
       - name: Tests unitaires
@@ -48,6 +41,16 @@ jobs:
 
       - name: Build (copie aussi le moteur Stockfish WASM)
         run: npm run build
+
+      # Placé APRÈS les tests : un souci de configuration Pages ne doit pas
+      # masquer le résultat du build.
+      # `enablement: true` laisse le workflow activer Pages lui-même. Cela
+      # échoue tant que le dépôt est privé sur un plan Free (Pages y est
+      # indisponible) ; une fois le dépôt public, l'activation passe.
+      - name: Configurer Pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
 
       - uses: actions/upload-pages-artifact@v3
         with:
