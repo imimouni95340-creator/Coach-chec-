@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { DifficultyLevelOut, PlayerColor } from "../types/game";
-import { api } from "../api/client";
+import { api } from "../game/localGameApi";
 
 interface Props {
   onStart: (color: PlayerColor, elo: number) => void;
@@ -21,7 +21,7 @@ export function SetupScreen({ onStart, starting, error }: Props) {
         setLevels(data);
         setElo(data[Math.floor(data.length / 2)]?.target_elo ?? data[0]?.target_elo ?? null);
       })
-      .catch(() => setLoadError("Impossible de contacter le serveur. Vérifiez que le backend tourne."));
+      .catch(() => setLoadError("Impossible de charger les niveaux de difficulté."));
   }, []);
 
   return (

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { GameStateOut } from "../types/game";
-import { api, ApiError } from "../api/client";
+import { api } from "../game/localGameApi";
 import { Board } from "./Board";
 import { MoveHistory } from "./MoveHistory";
 import { PlayerPanel } from "./PlayerPanel";
@@ -29,7 +29,7 @@ export function GameScreen({ game, onGameUpdate, onNewGame }: Props) {
         if (!cancelled) onGameUpdate(updated);
       })
       .catch((err) => {
-        if (!cancelled) setError(err instanceof ApiError ? err.message : "Erreur lors du coup de l'IA.");
+        if (!cancelled) setError(err instanceof Error ? err.message : "Erreur lors du coup de l'IA.");
       })
       .finally(() => {
         if (!cancelled) setAiThinking(false);
@@ -46,7 +46,7 @@ export function GameScreen({ game, onGameUpdate, onNewGame }: Props) {
       const updated = await api.makeMove(game.id, uci);
       onGameUpdate(updated);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Coup refusé.");
+      setError(err instanceof Error ? err.message : "Coup refusé.");
     }
   }
 
@@ -56,12 +56,14 @@ export function GameScreen({ game, onGameUpdate, onNewGame }: Props) {
       onGameUpdate(updated);
       setConfirmResign(false);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Impossible d'abandonner.");
+      setError(err instanceof Error ? err.message : "Impossible d'abandonner.");
     }
   }
 
   const lastMove = game.moves.at(-1);
-  const topColor = game.human_color === "white" ? game.ai_color : game.human_color;
+  // The board is always drawn from the human's side, so the opponent sits on
+  // top and the human at the bottom, whichever colour they chose.
+  const topColor = game.ai_color;
   const bottomColor = game.human_color;
 
   return (

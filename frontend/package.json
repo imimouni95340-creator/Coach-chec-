@@ -7,20 +7,31 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "predev": "node scripts/copy-engine.mjs",
+    "prebuild": "node scripts/copy-engine.mjs",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:offline": "node e2e/offline.mjs"
   },
   "dependencies": {
+    "chess.js": "^1.4.0",
     "react": "^19.2.8",
     "react-chessboard": "^5.12.1",
-    "react-dom": "^19.2.8"
+    "react-dom": "^19.2.8",
+    "stockfish.js": "^10.0.2"
   },
   "devDependencies": {
     "@types/node": "^24.13.3",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
     "@vitejs/plugin-react": "^6.1.0",
+    "jsdom": "^25.0.1",
     "oxlint": "^1.79.0",
+    "playwright-core": "^1.49.1",
     "typescript": "~6.0.2",
-    "vite": "^8.2.2"
+    "vite": "^8.2.2",
+    "vite-plugin-pwa": "^1.3.0",
+    "vitest": "^2.1.8"
   }
 }

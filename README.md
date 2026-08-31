@@ -1,129 +1,123 @@
 # Coach d'Échecs IA — Phase 1
 
-Prototype jouable : un humain affronte Stockfish (vrai moteur, pas de simulation) à un niveau
-de difficulté choisi parmi 11 paliers Elo (100 à 2100).
+Application d'échecs jouable contre **Stockfish** (le vrai moteur, aucune simulation), à 11
+niveaux Elo, qui **tourne entièrement sur l'appareil** : pas de serveur, pas d'ordinateur allumé,
+pas de connexion Internet une fois installée.
 
-## Stack
+## Comment ça marche
 
-- **Frontend** : React + TypeScript (Vite), `react-chessboard` pour le rendu de l'échiquier.
-- **Backend** : Python + FastAPI.
-- **Moteur** : Stockfish, piloté via `python-chess` (`chess.engine`).
-- **Base de données** : SQLite (via SQLAlchemy), remplaçable par Postgres en changeant une seule
-  variable d'environnement.
+Stockfish est embarqué sous forme **WebAssembly** et s'exécute dans un Web Worker, dans le
+navigateur du téléphone. Les règles sont assurées par `chess.js`, et les parties terminées sont
+archivées en PGN dans le stockage de l'appareil. L'application est une **PWA** : installée sur
+l'écran d'accueil, elle se lance et se joue hors ligne (mode avion inclus).
 
-## Architecture
+Poids de l'installation hors ligne : **~1,1 Mo** (dont 546 Ko pour le moteur).
 
-```
-backend/app/
-  engine/    → StockfishEngine (parle UNIQUEMENT à Stockfish) + DifficultyProfile (calibration Elo)
-  game/      → règles, état de partie, PGN (ne connaît ni HTTP ni Stockfish directement)
-  db/        → modèles SQLAlchemy + persistance des parties terminées
-  api/       → routes FastAPI + schémas Pydantic (couche fine, aucune logique métier)
-  core/      → configuration (chemin Stockfish, URL base de données, ...)
-frontend/src/
-  api/       → client HTTP typé
-  components/→ SetupScreen, Board, GameScreen, MoveHistory, PlayerPanel, StatusBanner
-  types/     → types miroir des schémas backend
-```
+## Installer sur votre téléphone
 
-## Prérequis
+L'app doit être servie une première fois en HTTPS pour pouvoir s'installer. Le plus simple est
+GitHub Pages, gratuit :
 
-- Python 3.11+
-- Node.js 20+
-- Stockfish installé sur la machine (le backend le détecte automatiquement via `PATH`, ou via
-  `/usr/games/stockfish`) :
-  ```bash
-  sudo apt-get install stockfish
-  ```
+1. Dans le dépôt : **Settings → Pages → Source : GitHub Actions**.
+2. Onglet **Actions → « Publier la PWA sur GitHub Pages » → Run workflow**.
+   Ce workflow est **à déclenchement manuel** : rien n'est publié sans votre action, car publier
+   rend l'application accessible publiquement.
+3. Ouvrez l'URL fournie sur votre téléphone, puis :
+   - **iPhone (Safari)** : bouton Partager → « Sur l'écran d'accueil ».
+   - **Android (Chrome)** : menu ⋮ → « Installer l'application ».
+4. Lancez-la une fois avec du réseau (elle met le moteur en cache), puis elle fonctionne hors
+   ligne indéfiniment.
 
-## Lancer le backend
-
-```bash
-cd backend
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-uvicorn app.main:app --reload --port 8000
-```
-
-L'API est disponible sur `http://localhost:8000` (documentation interactive sur
-`http://localhost:8000/docs`). Une base SQLite `chess_coach.db` est créée automatiquement au
-premier démarrage.
-
-## Lancer le frontend
+## Développement en local
 
 ```bash
 cd frontend
 npm install
-cp .env.example .env.local   # VITE_API_URL=http://localhost:8000
-npm run dev
+npm run dev      # copie le moteur WASM puis lance Vite sur http://localhost:5173
 ```
 
-Ouvrez `http://localhost:5173`.
-
-## Utiliser depuis un téléphone (même Wi-Fi)
-
-L'interface est responsive et se joue au doigt (touchez la pièce, puis la case d'arrivée ; les
-coups légaux s'affichent en pointillés). Pour y accéder depuis votre téléphone, lancez les deux
-serveurs en écoutant sur le réseau, depuis votre ordinateur :
+Autres commandes :
 
 ```bash
-# Backend
-uvicorn app.main:app --host 0.0.0.0 --port 8000
-
-# Frontend
-npm run dev -- --host 0.0.0.0 --port 5173
+npm run build         # build de production (PWA + service worker)
+npm test              # 30 tests unitaires (règles, calibration, archivage)
+npm run test:offline  # test bout-en-bout : joue une partie réseau coupé
 ```
 
-Récupérez l'IP locale de l'ordinateur (`hostname -I` sous Linux, `ipconfig getifaddr en0` sous
-macOS), puis ouvrez `http://<IP-de-l-ordinateur>:5173` dans le navigateur du téléphone —
-par exemple `http://192.168.1.42:5173`.
-
-Aucune configuration n'est nécessaire : le frontend appelle automatiquement le backend sur le
-même hôte que la page, et le backend accepte les origines des plages d'IP privées
-(`192.168.x.x`, `10.x.x.x`, `172.16-31.x.x`). L'ordinateur doit rester allumé et les deux
-appareils sur le même réseau. Pour un autre cas (déploiement, plage d'IP différente), surchargez
-`VITE_API_URL` côté frontend et `COACH_CORS_ORIGIN_REGEX` côté backend.
-
-## Lancer les tests backend
+Le test hors ligne a besoin d'un build servi en statique et d'un Chromium :
 
 ```bash
-cd backend
-source .venv/bin/activate
-pytest
+npm run build && (cd dist && python3 -m http.server 8900) &
+npx playwright install chromium    # ou CHROMIUM_PATH=/chemin/vers/chromium
+npm run test:offline
 ```
 
-23 tests couvrent : mapping des 11 niveaux Elo, échec/échec et mat/pat, nulles (matériel
-insuffisant, 50 coups), roque, prise en passant, promotion, coups illégaux, abandon, et le
-parcours complet de l'API (création de partie, coups, réponse du moteur, sauvegarde PGN).
+## Architecture
 
-## Ce qui a été construit
+```
+frontend/src/
+  engine/    → stockfishEngine.ts (seul module parlant UCI, via Web Worker WASM)
+               difficulty.ts      (DifficultyProfile : les 11 paliers Elo)
+  game/      → gameSession.ts     (règles, état, PGN — via chess.js)
+               storage.ts         (archivage des parties sur l'appareil)
+               localGameApi.ts    (orchestration ; l'UI ignore où tourne le moteur)
+  components/→ SetupScreen, Board, GameScreen, MoveHistory, PlayerPanel, StatusBanner
+  types/     → types partagés
+frontend/e2e/ → test hors ligne bout-en-bout
+backend/      → API FastAPI (voir « Statut du backend » plus bas)
+```
 
-- Échiquier interactif (clic ou glisser-déposer), choix des Blancs/Noirs, 11 niveaux Elo (100 à
-  2100), historique des coups, temps de réflexion de l'IA, horloges cumulées, abandon (avec
-  confirmation), nouvelle partie.
-- Détection correcte de : échec, échec et mat, pat, nulle (matériel insuffisant, 50 coups,
-  répétition), roque, prise en passant, promotion (choix de la pièce).
-- Chaque partie terminée est enregistrée en PGN (position initiale, coups, résultat, couleur du
-  joueur, niveau Elo de l'IA, date, temps utilisé).
+La séparation moteur / règles / interface est la même qu'avant : `engine/` calcule des coups,
+`game/` connaît les règles et l'état, les composants affichent. Rien d'autre que
+`stockfishEngine.ts` ne parle au moteur.
+
+## Fonctionnalités
+
+- Choix des Blancs ou des Noirs, 11 niveaux Elo (100 à 2100).
+- Échiquier interactif au doigt (touchez la pièce puis la case ; les coups légaux s'affichent) ou
+  au glisser-déposer.
+- Historique des coups, temps de réflexion du moteur, horloges, abandon avec confirmation,
+  nouvelle partie.
+- Détection : échec, échec et mat, pat, nulle (matériel insuffisant, 50 coups, répétition),
+  roque, prise en passant, promotion avec choix de la pièce.
+- Chaque partie terminée est enregistrée en PGN (position initiale, coups, résultat, couleur,
+  niveau de l'IA, date, temps utilisé).
 
 ## Calibration Elo — avertissement important
 
-Stockfish ne descend nativement (`UCI_Elo`) qu'à ~1320 Elo. Pour les paliers 100 à 1300, la force
-est réduite via une combinaison de `Skill Level`, profondeur/temps de recherche limités, et une
-probabilité de jouer un coup volontairement sous-optimal (`app/engine/difficulty.py`). **Ce n'est
-pas un calibrage scientifique** : c'est une première approximation documentée, à affiner plus
-tard par des parties moteur-contre-moteur mesurées.
+**Ce n'est pas un calibrage scientifique.** Les niveaux sont une première approximation
+documentée, conçue pour être ajustée après mesure.
 
-## Limites connues / à corriger ensuite
+Le build WebAssembly utilisé (`stockfish.js` 10.0.2) **n'expose pas** `UCI_LimitStrength` /
+`UCI_Elo` — vérifié en lisant sa liste d'options UCI à l'exécution. La force est donc modulée par
+trois leviers seulement, dans `frontend/src/engine/difficulty.ts` :
 
-- Les parties actives vivent en mémoire (un seul processus/worker) ; redémarrer le backend perd
-  les parties en cours (les parties terminées, elles, sont bien en base).
-- Pas d'authentification / multi-utilisateur : Phase 1 est mono-utilisateur local.
-- Le calibrage Elo bas (100–1300) est une approximation à valider par des tests statistiques
-  ultérieurs (Phase 2+).
-- Pas d'horloge de partie avec incrément (les "horloges" affichent le temps cumulé utilisé, pas
-  un compte à rebours façon blitz).
-- Analyse post-partie, coach pédagogique, mémoire joueur, exercices, dashboard, import Chess.com
-  : non implémentés (prévus phases 2 à 8), mais l'architecture (séparation engine/game/db/api) est
-  pensée pour les accueillir sans réécriture.
+- `skillLevel` (0-20), le réglage natif de Stockfish ;
+- `depth` / `movetimeMs`, qui bornent la recherche (et garantissent que l'interface ne bloque
+  jamais sur un téléphone lent) ;
+- une probabilité de jouer un coup volontairement sous-optimal, choisi parmi les meilleurs coups
+  (MultiPV), car même à `skillLevel` 0 le moteur ne commet pas les erreurs d'un débutant.
+
+L'étiquette Elo est une **cible**, pas une garantie. L'affiner demande de mesurer les résultats
+réels et d'ajuster ce tableau — c'est pourquoi il tient en une seule table remplaçable.
+
+## Statut du backend
+
+Le dossier `backend/` (FastAPI + python-chess + Stockfish natif + SQLite) **n'est plus nécessaire
+pour jouer** : la Phase 1 est désormais 100 % autonome sur l'appareil. Il est conservé car il
+reste la base des phases suivantes qui gagnent à tourner côté serveur (analyse profonde d'une
+partie, coach pédagogique s'appuyant sur un LLM, statistiques cumulées entre appareils). Ses 25
+tests passent toujours (`cd backend && pytest`). Si vous préférez une base de code strictement
+minimale, il peut être supprimé sans impact sur l'application.
+
+## Limites connues
+
+- La calibration Elo basse (100–1300) reste à valider par des mesures réelles.
+- Les parties archivées vivent dans le stockage du navigateur : vider les données du site les
+  efface, et elles ne se synchronisent pas entre appareils.
+- Les « horloges » affichent le temps cumulé utilisé, pas un compte à rebours de blitz avec
+  incrément.
+- Le glisser-déposer tactile n'a pas été validé sur un appareil physique ; le jeu au toucher
+  (case puis case) est le mode testé.
+- Phases 2 à 8 (analyse, coach, mémoire, faiblesses, exercices, dashboard, import Chess.com) :
+  non implémentées, mais l'architecture est prête à les accueillir.
