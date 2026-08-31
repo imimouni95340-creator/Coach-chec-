@@ -1,6 +1,10 @@
 import type { DifficultyLevelOut, GameStateOut, PlayerColor } from "../types/game";
 
-const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
+// Default to the backend on the same host the page was served from, so opening
+// the app from a phone (http://192.168.x.x:5173) talks to the backend on that
+// same machine rather than to the phone itself. Override with VITE_API_URL.
+const API_BASE =
+  import.meta.env.VITE_API_URL ?? `${window.location.protocol}//${window.location.hostname}:8000`;
 
 class ApiError extends Error {
   status: number;

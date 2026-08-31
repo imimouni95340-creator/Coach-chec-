@@ -61,6 +61,30 @@ npm run dev
 
 Ouvrez `http://localhost:5173`.
 
+## Utiliser depuis un téléphone (même Wi-Fi)
+
+L'interface est responsive et se joue au doigt (touchez la pièce, puis la case d'arrivée ; les
+coups légaux s'affichent en pointillés). Pour y accéder depuis votre téléphone, lancez les deux
+serveurs en écoutant sur le réseau, depuis votre ordinateur :
+
+```bash
+# Backend
+uvicorn app.main:app --host 0.0.0.0 --port 8000
+
+# Frontend
+npm run dev -- --host 0.0.0.0 --port 5173
+```
+
+Récupérez l'IP locale de l'ordinateur (`hostname -I` sous Linux, `ipconfig getifaddr en0` sous
+macOS), puis ouvrez `http://<IP-de-l-ordinateur>:5173` dans le navigateur du téléphone —
+par exemple `http://192.168.1.42:5173`.
+
+Aucune configuration n'est nécessaire : le frontend appelle automatiquement le backend sur le
+même hôte que la page, et le backend accepte les origines des plages d'IP privées
+(`192.168.x.x`, `10.x.x.x`, `172.16-31.x.x`). L'ordinateur doit rester allumé et les deux
+appareils sur le même réseau. Pour un autre cas (déploiement, plage d'IP différente), surchargez
+`VITE_API_URL` côté frontend et `COACH_CORS_ORIGIN_REGEX` côté backend.
+
 ## Lancer les tests backend
 
 ```bash

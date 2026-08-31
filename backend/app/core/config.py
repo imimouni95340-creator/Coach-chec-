@@ -32,6 +32,20 @@ class Settings(BaseSettings):
         "http://127.0.0.1:5173",
     ]
 
+    # Dev convenience: also accept any device on a private LAN (typically your
+    # phone on the same Wi-Fi), on any port. Deliberately limited to private
+    # address ranges — never a wildcard. Override / tighten this before
+    # exposing the API on a public network.
+    cors_origin_regex: str = (
+        r"http://("
+        r"localhost"
+        r"|127\.\d{1,3}\.\d{1,3}\.\d{1,3}"
+        r"|10\.\d{1,3}\.\d{1,3}\.\d{1,3}"
+        r"|192\.168\.\d{1,3}\.\d{1,3}"
+        r"|172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}"
+        r")(:\d+)?"
+    )
+
     # Hard safety caps so a client can never make the engine spin forever.
     engine_max_movetime_ms: int = 5000
     engine_max_depth: int = 20

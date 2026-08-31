@@ -13,6 +13,18 @@ def test_difficulty_levels_endpoint_lists_eleven_levels():
     assert {d["target_elo"] for d in data} == {100, 300, 500, 700, 900, 1100, 1300, 1500, 1700, 1900, 2100}
 
 
+def test_cors_allows_a_private_lan_origin():
+    """A phone on the same Wi-Fi must be able to call the API from the browser."""
+    resp = client.get("/api/difficulty-levels", headers={"Origin": "http://192.168.1.42:5173"})
+    assert resp.status_code == 200
+    assert resp.headers.get("access-control-allow-origin") == "http://192.168.1.42:5173"
+
+
+def test_cors_rejects_a_public_origin():
+    resp = client.get("/api/difficulty-levels", headers={"Origin": "http://evil.example.com"})
+    assert "access-control-allow-origin" not in resp.headers
+
+
 def test_create_game_rejects_unknown_elo():
     resp = client.post("/api/games", json={"human_color": "white", "ai_elo": 42})
     assert resp.status_code == 422
