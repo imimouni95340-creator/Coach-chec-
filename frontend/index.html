@@ -13,7 +13,9 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Coach Échecs" />
-    <link rel="apple-touch-icon" href="./icons/icon-192.png" />
+    <!-- iOS uses this, not the manifest icons, for the home-screen icon.
+         It must be opaque: transparency renders as black on iOS. -->
+    <link rel="apple-touch-icon" sizes="180x180" href="./icons/apple-touch-icon.png" />
     <title>Coach d'Échecs IA</title>
   </head>
   <body>

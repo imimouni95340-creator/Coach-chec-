@@ -27,6 +27,25 @@
 body {
   margin: 0;
   min-height: 100svh;
+  /* Installed on an iPhone the page runs full-bleed under the status bar, so
+     nothing may rely on the viewport edges being safe to draw in. */
+  padding: env(safe-area-inset-top) env(safe-area-inset-right)
+    env(safe-area-inset-bottom) env(safe-area-inset-left);
+  /* Feel like an app rather than a web page: no rubber-band scroll, no grey
+     flash on tap, and no text selection when tapping board squares. */
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* A long press on a square must not raise iOS's selection magnifier. */
+.board-wrapper,
+.player-panel,
+.app-header,
+button {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
 }
 
 h1, h2, h3 {

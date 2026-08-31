@@ -1,10 +1,13 @@
 name: Publier la PWA sur GitHub Pages
 
-# Déclenchement MANUEL uniquement : publier rend l'application accessible
-# publiquement sur Internet, c'est donc une décision explicite, jamais un effet
-# de bord d'un push. Lancez-le depuis l'onglet Actions du dépôt, après avoir
-# activé Pages (Settings > Pages > Source: GitHub Actions).
+# Publier rend l'application accessible publiquement sur Internet.
+# Le propriétaire du dépôt l'a demandé explicitement : la publication est donc
+# automatique à chaque push sur la branche de développement, et peut aussi être
+# relancée à la main depuis l'onglet Actions.
 on:
+  push:
+    branches:
+      - claude/chess-coach-phase-1-etl2vc
   workflow_dispatch:
 
 permissions:
@@ -30,6 +33,13 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: frontend/package-lock.json
+
+      # `enablement: true` laisse le workflow activer GitHub Pages lui-même,
+      # ce qui évite d'avoir à le faire à la main dans les réglages du dépôt.
+      - name: Configurer Pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
 
       - run: npm ci
 
