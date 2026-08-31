@@ -1,9 +1,9 @@
 name: Publier la PWA sur GitHub Pages
 
-# Publier rend l'application accessible publiquement sur Internet.
-# Le propriétaire du dépôt l'a demandé explicitement : la publication est donc
-# automatique à chaque push sur la branche de développement, et peut aussi être
-# relancée à la main depuis l'onglet Actions.
+# Publie l'application sur GitHub Pages a chaque push, sans aucune action
+# manuelle. Le site est servi depuis la branche gh-pages : c'est cette
+# methode qui a pu etre activee, l'API Pages exigeant des droits
+# d'administration qu'un jeton de workflow n'a pas.
 on:
   push:
     branches:
@@ -11,20 +11,15 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
 concurrency:
   group: pages
   cancel-in-progress: true
 
 jobs:
-  build:
+  build-and-publish:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: frontend
     steps:
       - uses: actions/checkout@v4
 
@@ -34,34 +29,28 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
-      - run: npm ci
+      - name: Installer les dependances
+        working-directory: frontend
+        run: npm ci
 
       - name: Tests unitaires
+        working-directory: frontend
         run: npm test
 
       - name: Build (copie aussi le moteur Stockfish WASM)
+        working-directory: frontend
         run: npm run build
 
-      # Placé APRÈS les tests : un souci de configuration Pages ne doit pas
-      # masquer le résultat du build.
-      # `enablement: true` laisse le workflow activer Pages lui-même. Cela
-      # échoue tant que le dépôt est privé sur un plan Free (Pages y est
-      # indisponible) ; une fois le dépôt public, l'activation passe.
-      - name: Configurer Pages
-        uses: actions/configure-pages@v5
-        with:
-          enablement: true
-
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: frontend/dist
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Publier sur la branche gh-pages
+        working-directory: frontend/dist
+        run: |
+          # .nojekyll : sinon Pages fait passer le site par Jekyll.
+          touch .nojekyll
+          git init -q
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -qm "Build ${GITHUB_SHA}"
+          git push -f "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}" HEAD:gh-pages
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
