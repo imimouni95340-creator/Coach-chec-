@@ -15,22 +15,22 @@ Poids de l'installation hors ligne : **~1,1 Mo** (dont 546 Ko pour le moteur).
 
 ## Installer sur votre téléphone
 
-L'app doit être servie une première fois en HTTPS pour pouvoir s'installer. Le plus simple est
-GitHub Pages, gratuit :
+**L'application est en ligne :**
 
-1. **Rendre le dépôt public** : Settings → General → Danger Zone → *Change visibility*.
-   GitHub Pages n'est pas disponible sur un dépôt privé en plan Free, et le jeton d'un workflow
-   n'a pas le droit de créer un site Pages : cette étape ne peut pas être automatisée.
-2. Le workflow se déclenche à chaque push et active Pages lui-même
-   (`actions/configure-pages` avec `enablement: true`). Si le site n'apparaît pas, relancez-le
-   depuis **Actions → « Publier la PWA sur GitHub Pages » → Run workflow**, ou activez Pages à la
-   main via **Settings → Pages → Source : GitHub Actions**.
-3. Ouvrez l'URL fournie (`https://<votre-compte>.github.io/Coach-chec-/`) sur votre téléphone,
-   puis :
-   - **iPhone (Safari)** : bouton Partager → « Sur l'écran d'accueil ».
-   - **Android (Chrome)** : menu ⋮ → « Installer l'application ».
-4. Lancez-la une fois avec du réseau (elle met le moteur en cache), puis elle fonctionne hors
-   ligne indéfiniment.
+### https://imimouni95340-creator.github.io/Coach-chec-/
+
+Ouvrez ce lien dans **Safari** sur l'iPhone, puis :
+bouton **Partager** → **« Sur l'écran d'accueil »**. L'icône du cavalier apparaît.
+
+Sur Android (Chrome) : menu ⋮ → **« Installer l'application »**.
+
+Lancez-la une fois avec du réseau : elle met le moteur en cache, puis fonctionne hors ligne
+indéfiniment, même en mode avion.
+
+Les mises à jour sont automatiques : chaque push sur la branche de développement relance les
+tests, reconstruit le site et le republie (voir `.github/workflows/deploy-pwa.yml`). Le site est
+servi depuis la branche `gh-pages` — l'API Pages exige des droits d'administration qu'un jeton de
+workflow n'a pas, alors que pousser cette branche sur un dépôt public active Pages tout seul.
 
 ## Développement en local
 
